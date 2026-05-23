@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4a90e2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>習慣化・継続トラッカー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📝 習慣化・継続トラッカー</h1>
+        <p>毎日の習慣を登録して、完了したらチェックを入れましょう。</p>
+
+        <div id="message-box" class="message-box"></div>
+
+        <div class="input-area">
+            <input id="habit-input" type="text" placeholder="例：スクワット、読書、ベンチプレス" />
+            <select id="category-select">
+                <option value="exercise">運動（赤）</option>
+                <option value="study">勉強（青）</option>
+                <option value="daily">生活習慣（緑）</option>
+            </select>
+            <button id="add-habit-button" type="button">追加</button>
+        </div>
+
+        <div class="batch-actions">
+            <button id="select-mode-button" type="button">選択</button>
+        </div>
+
+        <div id="action-panel" class="action-panel hidden">
+            <span id="selected-count">0 件選択中</span>
+            <button id="edit-selected-button" type="button">編集</button>
+            <button id="delete-selected-button" type="button">削除</button>
+        </div>
+
+        <ul id="habit-list" class="habit-list"></ul>
+        <p id="empty-message" class="empty-message">まだ習慣がありません。まずは一つ追加してみましょう。</p>
+    </div>
+
+    <!-- ミニカレンダー（当月） -->
+    <div class="calendar-section container">
+        <h2 class="calendar-title">今月の記録</h2>
+        <div id="mini-calendar" class="mini-calendar">
+            <div class="calendar-header">
+                <div id="calendar-month" class="calendar-month"></div>
+                <div id="calendar-legend" class="calendar-legend"></div>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <div id="celebration-container" class="celebration-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
