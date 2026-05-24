@@ -9,49 +9,72 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>📝 習慣化・継続トラッカー</h1>
-        <p>毎日の習慣を登録して、完了したらチェックを入れましょう。</p>
+    <main>
+        <section id="tab-habits" class="tab-page active">
+            <div class="container">
+                <h1>📝 習慣化・継続トラッカー</h1>
+                <p>毎日の習慣を登録して、完了したらチェックを入れましょう。</p>
 
-        <div id="message-box" class="message-box"></div>
+                <div id="message-box" class="message-box"></div>
 
-        <div class="input-area">
-            <input id="habit-input" type="text" placeholder="例：スクワット、読書、ベンチプレス" />
-            <select id="category-select">
-                <option value="exercise">運動（赤）</option>
-                <option value="study">勉強（青）</option>
-                <option value="daily">生活習慣（緑）</option>
-            </select>
-            <button id="add-habit-button" type="button">追加</button>
-        </div>
+                <div class="input-area">
+                    <input id="habit-input" type="text" placeholder="例：スクワット、読書、ベンチプレス" />
+                    <select id="category-select">
+                        <option value="exercise">運動（赤）</option>
+                        <option value="study">勉強（青）</option>
+                        <option value="daily">生活習慣（緑）</option>
+                    </select>
+                    <button id="add-habit-button" type="button">追加</button>
+                </div>
 
-        <div class="batch-actions">
-            <button id="select-mode-button" type="button">選択</button>
-        </div>
+                <div class="batch-actions">
+                    <button id="select-mode-button" type="button">選択</button>
+                </div>
 
-        <div id="action-panel" class="action-panel hidden">
-            <span id="selected-count">0 件選択中</span>
-            <button id="edit-selected-button" type="button">編集</button>
-            <button id="delete-selected-button" type="button">削除</button>
-        </div>
+                <div id="action-panel" class="action-panel hidden">
+                    <span id="selected-count">0 件選択中</span>
+                    <button id="edit-selected-button" type="button">編集</button>
+                    <button id="delete-selected-button" type="button">削除</button>
+                </div>
 
-        <ul id="habit-list" class="habit-list"></ul>
-        <p id="empty-message" class="empty-message">まだ習慣がありません。まずは一つ追加してみましょう。</p>
-    </div>
-
-    <!-- ミニカレンダー（当月） -->
-    <div class="calendar-section container">
-        <h2 class="calendar-title">今月の記録</h2>
-        <div id="mini-calendar" class="mini-calendar">
-            <div class="calendar-header">
-                <div id="calendar-month" class="calendar-month"></div>
-                <div id="calendar-legend" class="calendar-legend"></div>
+                <ul id="habit-list" class="habit-list"></ul>
+                <p id="empty-message" class="empty-message">まだ習慣がありません。まずは一つ追加してみましょう。</p>
             </div>
-            <div id="calendar-grid" class="calendar-grid"></div>
-        </div>
-    </div>
+        </section>
 
-    <div id="celebration-container" class="celebration-container"></div>
+        <section id="tab-calendar" class="tab-page">
+            <div class="calendar-section container">
+                <h2 class="calendar-title">今月の記録</h2>
+                <div id="mini-calendar" class="mini-calendar">
+                    <div class="calendar-header">
+                        <div id="calendar-month" class="calendar-month"></div>
+                        <div id="calendar-legend" class="calendar-legend"></div>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-diary" class="tab-page">
+            <div class="container" id="diary-section">
+                <h2>✍️ 日記</h2>
+                <p id="diary-subtitle">今日の気持ちや振り返りを残しましょう。</p>
+                <div class="diary-form">
+                    <div id="diary-date" class="diary-date" style="font-weight: bold; margin-bottom: 10px; color: #2a3d66;"></div>
+                    <textarea id="diary-text" placeholder="今日の出来事や気づきを書き留めてください。" style="width: 100%; height: 150px; padding: 12px; border: 1px solid #ccd7e0; border-radius: 8px; font-size: 16px; margin-bottom: 14px; resize: none;"></textarea>
+                    <button id="save-diary-button" type="button" style="width: 100%;">日記を保存する</button>
+                </div>
+            </div>
+        </section>
+
+        <div id="celebration-container" class="celebration-container"></div>
+    </main>
+
+    <nav class="tab-bar" role="navigation" aria-label="メインナビゲーション">
+        <button class="tab-button active" data-tab="tab-habits" aria-pressed="true">📋<span>習慣</span></button>
+        <button class="tab-button" data-tab="tab-calendar" aria-pressed="false">📅<span>記録</span></button>
+        <button class="tab-button" data-tab="tab-diary" aria-pressed="false">✍️<span>日記</span></button>
+    </nav>
 
     <script src="script.js"></script>
 </body>

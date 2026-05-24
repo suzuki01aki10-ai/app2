@@ -13,6 +13,9 @@ const habitList = document.getElementById('habit-list');
 const emptyMessage = document.getElementById('empty-message');
 const messageBox = document.getElementById('message-box');
 const celebrationContainer = document.getElementById('celebration-container');
+const diaryDateLabel = document.getElementById('diary-date');
+const diaryText = document.getElementById('diary-text');
+const saveDiaryButton = document.getElementById('save-diary-button');
 let selectedHabits = new Set();
 let selectionMode = false;
 
@@ -35,7 +38,7 @@ const milestoneMessages = {
     7: '7日連続の大記録！🎊',
 };
 
-let habits = loadHabits();
+// --- 関数定義（ここを上に移動して、ブラウザが先に覚えるようにしました） ---
 
 function loadHabits() {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -45,7 +48,6 @@ function loadHabits() {
 
     try {
         const parsed = JSON.parse(saved);
-        // 既存データとの互換性を保つため、completedDates を必ず持つよう正規化
         return parsed.map(h => ({
             id: h.id,
             name: h.name,
@@ -59,6 +61,42 @@ function loadHabits() {
         console.error('LocalStorageのデータ読み込みに失敗しました。', error);
         return [];
     }
+}
+
+const DIARY_STORAGE_KEY = 'habitTrackerDiaryData';
+
+function loadDiaryEntries() {
+    const saved = localStorage.getItem(DIARY_STORAGE_KEY);
+    if (!saved) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error('日記データの読み込みに失敗しました。', error);
+        return [];
+    }
+}
+
+let habits = loadHabits();
+let diaryEntries = loadDiaryEntries();
+
+function saveDiaryEntries() {
+    localStorage.setItem(DIARY_STORAGE_KEY, JSON.stringify(diaryEntries));
+}
+
+function getDiaryEntry(date) {
+    return diaryEntries.find(entry => entry.date === date) || null;
+}
+
+function renderDiaryEntry(date) {
+    if (!diaryDateLabel || !diaryText) return;
+
+    diaryDateLabel.textContent = `${date} の日記`;
+    const todayEntry = getDiaryEntry(date);
+    diaryText.value = todayEntry ? todayEntry.content : '';
 }
 
 function saveHabits() {
@@ -213,7 +251,7 @@ function addHabit(name, category) {
 
     habits.push(newHabit);
     saveHabits();
-    renderHabits();
+    refreshUI();
     habitInput.value = '';
 }
 
@@ -240,7 +278,6 @@ function completeHabit(id) {
             updatedHabit.streak = 1;
         }
         updatedHabit.lastCompletedDate = today;
-        // 履歴にも追加（重複を避ける）
         if (!Array.isArray(updatedHabit.completedDates)) updatedHabit.completedDates = [];
         if (!updatedHabit.completedDates.includes(today)) {
             updatedHabit.completedDates.push(today);
@@ -261,20 +298,17 @@ function completeHabit(id) {
     }
 }
 
-// Habitsを再描画し、カレンダーも更新するヘルパー
 function refreshUI() {
     renderHabits();
     renderMiniCalendar();
 }
 
-// カレンダー描画（当月）
 function renderMiniCalendar() {
     const grid = document.getElementById('calendar-grid');
     const monthLabel = document.getElementById('calendar-month');
     const legend = document.getElementById('calendar-legend');
     if (!grid || !monthLabel || !legend) return;
 
-    // 今月を取得
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -283,7 +317,6 @@ function renderMiniCalendar() {
 
     monthLabel.textContent = `${year}年 ${month + 1}月`;
 
-    // 凡例
     legend.innerHTML = '';
     Object.keys(categories).forEach(key => {
         const item = document.createElement('div');
@@ -299,14 +332,12 @@ function renderMiniCalendar() {
     });
 
     grid.innerHTML = '';
-    // 先頭の空セル
     for (let i = 0; i < firstDay; i++) {
         const empty = document.createElement('div');
         empty.className = 'calendar-day';
         grid.appendChild(empty);
     }
 
-    // 日付セルを生成
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const cell = document.createElement('div');
@@ -319,7 +350,6 @@ function renderMiniCalendar() {
         const dots = document.createElement('div');
         dots.className = 'calendar-dots';
 
-        // 習慣ごとにチェック済みか確認
         habits.forEach(habit => {
             if (Array.isArray(habit.completedDates) && habit.completedDates.includes(dateStr)) {
                 const dot = document.createElement('span');
@@ -333,6 +363,21 @@ function renderMiniCalendar() {
         cell.appendChild(dots);
         grid.appendChild(cell);
     }
+}
+
+function saveDiary() {
+    const date = getToday();
+    const content = diaryText.value.trim();
+    const existing = getDiaryEntry(date);
+
+    if (existing) {
+        existing.content = content;
+    } else {
+        diaryEntries.push({ date, content });
+    }
+
+    saveDiaryEntries();
+    showFloatingMessage('今日の日記を保存しました。');
 }
 
 function editHabit(id) {
@@ -372,13 +417,6 @@ function editHabit(id) {
     renderHabits();
 }
 
-function deleteHabit(id) {
-    habits = habits.filter(habit => habit.id !== id);
-    selectedHabits.delete(id);
-    saveHabits();
-    renderHabits();
-}
-
 function deleteSelectedHabits() {
     if (selectedHabits.size === 0) {
         alert('まずは削除したい項目をチェックしてください。');
@@ -412,13 +450,59 @@ function updateSelectionPanel() {
     }
 }
 
+function toggleSelectionMode() {
+    selectionMode = !selectionMode;
+    selectModeButton.textContent = selectionMode ? '選択を取消' : '選択';
+    if (!selectionMode) {
+        selectedHabits.clear();
+    }
+    updateSelectionPanel();
+    renderHabits();
+}
+
+// --- タブ切替（画面下部ナビ） ---
+function setupTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPages = document.querySelectorAll('.tab-page');
+
+    function switchTab(tabId) {
+        tabPages.forEach(p => {
+            if (p.id === tabId) {
+                p.classList.add('active');
+            } else {
+                p.classList.remove('active');
+            }
+        });
+
+        tabButtons.forEach(b => {
+            const isActive = b.dataset.tab === tabId;
+            b.classList.toggle('active', isActive);
+            b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        if (tabId === 'tab-calendar') {
+            renderMiniCalendar();
+        }
+
+        if (tabId === 'tab-diary') {
+            renderDiaryEntry(getToday());
+        }
+    }
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+            switchTab(tabId);
+        });
+    });
+
+    const initial = document.querySelector('.tab-button.active')?.dataset.tab || document.querySelector('.tab-button')?.dataset.tab;
+    if (initial) switchTab(initial);
+}
+
+// --- イベントリスナー登録 ---
 addHabitButton.addEventListener('click', () => {
     addHabit(habitInput.value, categorySelect.value);
-});
-
-// 追加後にUIを更新
-addHabitButton.addEventListener('click', () => {
-    refreshUI();
 });
 
 selectModeButton.addEventListener('click', toggleSelectionMode);
@@ -439,24 +523,8 @@ document.addEventListener('keydown', event => {
     }
 });
 
-function toggleSelectionMode() {
-    selectionMode = !selectionMode;
-    selectModeButton.textContent = selectionMode ? '選択を取消' : '選択';
-    if (!selectionMode) {
-        selectedHabits.clear();
-    }
-    updateSelectionPanel();
-    renderHabits();
-    updateSelectionPanel();
-}
-
-function updateSelectionPanel() {
-    selectedCountLabel.textContent = `${selectedHabits.size} 件選択中`;
-    if (selectionMode && selectedHabits.size > 0) {
-        actionPanel.classList.remove('hidden');
-    } else {
-        actionPanel.classList.add('hidden');
-    }
+if (saveDiaryButton) {
+    saveDiaryButton.addEventListener('click', saveDiary);
 }
 
 function initialize() {
@@ -472,6 +540,7 @@ function initialize() {
     saveHabits();
     renderHabits();
     renderMiniCalendar();
+    setupTabs(); // タブの初期設定をここに引っ越しました
 }
 
 initialize();
