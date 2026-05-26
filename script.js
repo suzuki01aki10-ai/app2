@@ -13,9 +13,11 @@ const habitList = document.getElementById('habit-list');
 const emptyMessage = document.getElementById('empty-message');
 const messageBox = document.getElementById('message-box');
 const celebrationContainer = document.getElementById('celebration-container');
-const diaryDateLabel = document.getElementById('diary-date');
-const diaryText = document.getElementById('diary-text');
-const saveDiaryButton = document.getElementById('save-diary-button');
+let diaryDateLabel = document.getElementById('diary-date');
+let diaryText = document.getElementById('diary-text');
+let saveDiaryButton = document.getElementById('save-diary-button');
+let diaryStatus = document.getElementById('diary-status');
+let diaryBackButton = null;
 let selectedHabits = new Set();
 let selectionMode = false;
 
@@ -91,12 +93,40 @@ function getDiaryEntry(date) {
     return diaryEntries.find(entry => entry.date === date) || null;
 }
 
+function queryDiaryElements() {
+    diaryDateLabel = document.getElementById('diary-date');
+    diaryText = document.getElementById('diary-text');
+    saveDiaryButton = document.getElementById('save-diary-button');
+    diaryStatus = document.getElementById('diary-status');
+    diaryBackButton = document.getElementById('diary-back');
+}
+
+function queryMoodElements() {
+    const moodButtons = document.querySelectorAll('.mood-button');
+    return Array.from(moodButtons);
+}
+
+function setSelectedMood(mood) {
+    const buttons = queryMoodElements();
+    buttons.forEach(b => b.classList.toggle('selected', b.dataset.mood === mood));
+}
+
+function getSelectedMood() {
+    const buttons = queryMoodElements();
+    const found = buttons.find(b => b.classList.contains('selected'));
+    return found ? found.dataset.mood : null;
+}
+
 function renderDiaryEntry(date) {
     if (!diaryDateLabel || !diaryText) return;
 
+    currentDiaryDate = date;
     diaryDateLabel.textContent = `${date} の日記`;
     const todayEntry = getDiaryEntry(date);
     diaryText.value = todayEntry ? todayEntry.content : '';
+    // 感情スタンプの読み込み
+    const mood = todayEntry && todayEntry.mood ? todayEntry.mood : null;
+    setSelectedMood(mood);
 }
 
 function saveHabits() {
@@ -342,9 +372,16 @@ function renderMiniCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const cell = document.createElement('div');
         cell.className = 'calendar-day';
+        cell.dataset.date = dateStr;
         const num = document.createElement('div');
         num.className = 'day-number';
         num.textContent = d;
+
+        // 今日を強調
+        if (dateStr === getToday()) {
+            num.classList.add('today-number');
+        }
+
         cell.appendChild(num);
 
         const dots = document.createElement('div');
@@ -361,23 +398,82 @@ function renderMiniCalendar() {
         });
 
         cell.appendChild(dots);
+
+        // 日記がある日にはアイコンを表示
+        const diaryEntry = getDiaryEntry(dateStr);
+        if (diaryEntry) {
+            const icon = document.createElement('span');
+            icon.className = 'diary-icon';
+            icon.textContent = '📖';
+            cell.appendChild(icon);
+        }
+
+        // 日付クリックで日記タブへ遷移してその日付を表示
+        cell.addEventListener('click', () => {
+            activateTab('tab-diary');
+            renderDiaryEntry(dateStr);
+        });
+
         grid.appendChild(cell);
     }
 }
 
+function showSavePopup(message) {
+    const popup = document.getElementById('save-popup');
+    if (!popup) return;
+    popup.textContent = message;
+    popup.classList.add('show');
+    popup.setAttribute('aria-hidden', 'false');
+    clearTimeout(showSavePopup.timer);
+    showSavePopup.timer = setTimeout(() => {
+        popup.classList.remove('show');
+        popup.setAttribute('aria-hidden', 'true');
+    }, 1400);
+}
+
+// 外部からタブを切り替えられるようにする（他の関数から呼び出す）
+function activateTab(tabId) {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPages = document.querySelectorAll('.tab-page');
+
+    tabPages.forEach(p => {
+        p.classList.toggle('active', p.id === tabId);
+    });
+
+    tabButtons.forEach(b => {
+        const isActive = b.dataset.tab === tabId;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    if (tabId === 'tab-calendar') {
+        renderMiniCalendar();
+    }
+}
+
+// 現在表示している日記の日付（renderDiaryEntry で更新される）
+let currentDiaryDate = null;
+
 function saveDiary() {
-    const date = getToday();
-    const content = diaryText.value.trim();
+    const date = currentDiaryDate || getToday();
+    const content = diaryText ? diaryText.value.trim() : '';
     const existing = getDiaryEntry(date);
+    const mood = getSelectedMood();
 
     if (existing) {
         existing.content = content;
+        existing.mood = mood;
     } else {
-        diaryEntries.push({ date, content });
+        diaryEntries.push({ date, content, mood });
     }
 
     saveDiaryEntries();
-    showFloatingMessage('今日の日記を保存しました。');
+    renderDiaryEntry(date);
+    showFloatingMessage('日記を保存しました。');
+    // カレンダーの表示を更新してアイコンを反映
+    renderMiniCalendar();
+    // 保存後はポップアップではなくカレンダータブへ遷移
+    activateTab('tab-calendar');
 }
 
 function editHabit(id) {
@@ -523,10 +619,6 @@ document.addEventListener('keydown', event => {
     }
 });
 
-if (saveDiaryButton) {
-    saveDiaryButton.addEventListener('click', saveDiary);
-}
-
 function initialize() {
     const today = getToday();
 
@@ -540,7 +632,31 @@ function initialize() {
     saveHabits();
     renderHabits();
     renderMiniCalendar();
+    queryDiaryElements();
     setupTabs(); // タブの初期設定をここに引っ越しました
+
+    if (saveDiaryButton) {
+        saveDiaryButton.addEventListener('click', saveDiary);
+    } else {
+        console.warn('saveDiaryButton が見つかりません。');
+    }
+
+    // 感情スタンプのイベント登録
+    const moodButtons = queryMoodElements();
+    moodButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setSelectedMood(btn.dataset.mood);
+        });
+    });
+
+    // 戻るボタン
+    if (diaryBackButton) {
+        diaryBackButton.addEventListener('click', () => {
+            activateTab('tab-calendar');
+        });
+    }
+
+    renderDiaryEntry(today);
 }
 
 initialize();
